@@ -1,0 +1,9 @@
+{
+    "endpoint": "regru-eu",
+    "applicationKey": "<your-application-key>",
+    "applicationSecretRef": {
+        "Name": "regru-credentials",
+        "Key": "applicationSecret"
+    },
+    "consumerKey": "<your-consumer-key>"
+  }
