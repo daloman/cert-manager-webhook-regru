@@ -1,4 +1,4 @@
-FROM golang:1.16-alpine AS build_deps
+FROM golang:1.17-alpine AS build_deps
 
 RUN apk add --no-cache git
 
@@ -6,7 +6,7 @@ WORKDIR /workspace
 
 COPY go.mod .
 COPY go.sum .
-
+COPY .netrc /root/.netrc
 RUN go mod download
 
 FROM build_deps AS build
