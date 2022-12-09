@@ -20,6 +20,15 @@ image:
 nameOverride: ""
 fullnameOverride: ""
 
+##  Use envFrom to define all of the Secret's data as container environment variables.
+## The key from the Secret becomes the environment variable name in the Pod.
+## https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/#configure-all-key-value-pairs-in-a-secret-as-container-environment-variables
+# envFrom:
+#   - secretRef:
+#       name: secret-name
+
+envFrom: {}
+
 service:
   type: ClusterIP
   port: 443
