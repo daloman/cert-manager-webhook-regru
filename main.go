@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	//"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-
-	regruapi "daloman/regru-api-go"
+	regruapi "github.com/daloman/regru-api-go"
 
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
 	v1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 var GroupName = os.Getenv("GROUP_NAME")
@@ -98,7 +98,7 @@ func (c *regruDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	fmt.Printf("Decoded configuration %v", cfg)
 
 	// TODO: add code that sets a record in the DNS provider's console
-	regruapi.AddTxtRr(os.Getenv("RR_API_USERNAME"), os.Getenv("RR_API_PASSWORD"), ch.DNSName, ch.ResolvedFQDN, ch.Key)
+	regruapi.AddTxtRr(os.Getenv("RR_API_USERNAME"), os.Getenv("RR_API_PASSWORD"), strings.TrimRight(ch.ResolvedZone, "."), ch.ResolvedFQDN, ch.Key)
 	return nil
 }
 
@@ -110,7 +110,7 @@ func (c *regruDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // concurrently.
 func (c *regruDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	// TODO: add code that deletes a record from the DNS provider's console
-	regruapi.RmTxtRr(os.Getenv("RR_API_USERNAME"), os.Getenv("RR_API_PASSWORD"), ch.DNSName, ch.ResolvedFQDN, "TXT")
+	regruapi.RmTxtRr(os.Getenv("RR_API_USERNAME"), os.Getenv("RR_API_PASSWORD"), strings.TrimRight(ch.ResolvedZone, "."), ch.ResolvedFQDN, "TXT")
 	return nil
 }
 

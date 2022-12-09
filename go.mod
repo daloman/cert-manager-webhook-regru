@@ -3,14 +3,13 @@ module github.com/cert-manager/webhook-example
 go 1.17
 
 require (
+	github.com/daloman/regru-api-go v0.0.0-20221208230404-9a7f86939cb8
 	github.com/jetstack/cert-manager v1.7.0
 	github.com/miekg/dns v1.1.34
 	github.com/stretchr/testify v1.7.0
 	k8s.io/apiextensions-apiserver v0.23.1
 	k8s.io/client-go v0.23.1
 )
-
-require daloman/regru-api-go v0.0.0-00010101000000-000000000000
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
@@ -104,5 +103,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.0 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
-
-replace daloman/regru-api-go => ../regru-api-go
