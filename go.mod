@@ -3,7 +3,7 @@ module github.com/cert-manager/webhook-example
 go 1.17
 
 require (
-	github.com/daloman/regru-api-go v0.0.0-20221208230404-9a7f86939cb8
+	github.com/daloman/regru-api-go v0.0.0-20221209131946-b25c357e0119
 	github.com/jetstack/cert-manager v1.7.0
 	github.com/miekg/dns v1.1.34
 	github.com/stretchr/testify v1.7.0
