@@ -10,11 +10,14 @@ import (
 	//"k8s.io/client-go/kubernetes"
 	regruapi "github.com/daloman/regru-api-go"
 
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
-	v1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1" //
+	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"                //
+	v1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"                 //?
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
 )
 
 var GroupName = os.Getenv("GROUP_NAME")
@@ -36,7 +39,7 @@ func main() {
 
 // regruDNSProviderSolver implements the provider-specific logic needed to
 // 'present' an ACME challenge TXT record for your own DNS provider.
-// To do so, it must implement the `github.com/jetstack/cert-manager/pkg/acme/webhook.Solver`
+// To do so, it must implement the `github.com/cert-manager/cert-manager/pkg/acme/webhook.Solver`
 // interface.
 type regruDNSProviderSolver struct {
 	// If a Kubernetes 'clientset' is needed, you must:
