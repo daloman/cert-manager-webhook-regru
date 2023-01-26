@@ -8,7 +8,7 @@ import (
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	//"k8s.io/client-go/kubernetes"
-	regruapi "github.com/daloman/regru-api-go/client"
+	regruapi "github.com/daloman/regru-api-go/zonecontrol"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
