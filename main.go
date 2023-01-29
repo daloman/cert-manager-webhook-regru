@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	regruapi "github.com/daloman/regru-api-go/zonecontrol"
@@ -72,9 +73,9 @@ type customDNSProviderConfig struct {
 	// These fields will be set by users in the
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
-	//Email           string                     `json:"email"`
 	//APIKeySecretRef v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
-	APIKeySecretRef cmmeta.SecretKeySelector `json:"apiKeySecretRef"`
+	APILoginRef    cmmeta.SecretKeySelector `json:"apiLoginRef"`
+	APIPasswordRef cmmeta.SecretKeySelector `json:"apiPasswordRef"`
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -99,10 +100,19 @@ func (c *regruDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	}
 
 	// TODO: do something more useful with the decoded configuration
-	fmt.Printf("Decoded configuration %v", cfg)
+	log.Infof("Decoded configuration %v\n", cfg)
+	log.Infof("Decoded configuration %v\n", cfg.APILoginRef)
 
+	login, err := c.loadSecretData(cfg.APILoginRef, ch.ResourceNamespace)
+	if err != nil {
+		return err
+	}
+	secret, err := c.loadSecretData(cfg.APIPasswordRef, ch.ResourceNamespace)
+	if err != nil {
+		return err
+	}
 	// TODO: add code that sets a record in the DNS provider's console
-	regruapi.AddTxtRr(os.Getenv("RR_API_USERNAME"), os.Getenv("RR_API_PASSWORD"), strings.TrimRight(ch.ResolvedZone, "."), ch.ResolvedFQDN, ch.Key)
+	regruapi.AddTxtRr(login, secret, strings.TrimRight(ch.ResolvedZone, "."), ch.ResolvedFQDN, ch.Key)
 	return nil
 }
 
@@ -114,7 +124,23 @@ func (c *regruDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // concurrently.
 func (c *regruDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	// TODO: add code that deletes a record from the DNS provider's console
-	regruapi.RmTxtRr(os.Getenv("RR_API_USERNAME"), os.Getenv("RR_API_PASSWORD"), strings.TrimRight(ch.ResolvedZone, "."), ch.ResolvedFQDN, "TXT")
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return err
+	}
+	// TODO: do something more useful with the decoded configuration
+	log.Infof("Decoded configuration %v\n", cfg)
+	log.Infof("Decoded configuration %v\n", cfg.APILoginRef)
+
+	login, err := c.loadSecretData(cfg.APILoginRef, ch.ResourceNamespace)
+	if err != nil {
+		return err
+	}
+	secret, err := c.loadSecretData(cfg.APIPasswordRef, ch.ResourceNamespace)
+	if err != nil {
+		return err
+	}
+	regruapi.RmTxtRr(login, secret, strings.TrimRight(ch.ResolvedZone, "."), ch.ResolvedFQDN, "TXT")
 	return nil
 }
 
@@ -136,20 +162,7 @@ func (c *regruDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopC
 		return err
 	}
 
-	c.client = *cl //??????????
-	log.Infof("Initialize client: %v", c.client)
-	secret, err := c.client.CoreV1().Secrets("go").Get(context.TODO(), "db-user-pass", metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	log.Infof("The secret is: %v", secret)
-
-	bytes, ok := secret.Data["password"]
-	if !ok {
-		return fmt.Errorf("key not found %q in secret '%s/%s'", "password", "go", "db-user-pass")
-	}
-	log.Infof("Secret value is: %v", string(bytes))
-
+	c.client = *cl
 	///// END OF CODE TO MAKE KUBERNETES CLIENTSET AVAILABLE
 	return nil
 }
@@ -167,4 +180,17 @@ func loadConfig(cfgJSON *extapi.JSON) (customDNSProviderConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+func (c *regruDNSProviderSolver) loadSecretData(ref cmmeta.SecretKeySelector, ns string) (string, error) {
+	secret, err := c.client.CoreV1().Secrets(ns).Get(context.TODO(), ref.Name, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	if data, ok := secret.Data[ref.Key]; ok {
+		return string(data), nil
+	}
+
+	return "", errors.Errorf("no key %q in secret %q", ref.Key, ns+"/"+ref.Name)
 }
