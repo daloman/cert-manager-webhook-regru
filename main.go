@@ -1,18 +1,22 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
-	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	//"k8s.io/client-go/kubernetes"
+	log "github.com/sirupsen/logrus"
+
 	regruapi "github.com/daloman/regru-api-go/zonecontrol"
+	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
-	v1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -70,7 +74,7 @@ type customDNSProviderConfig struct {
 
 	//Email           string                     `json:"email"`
 	//APIKeySecretRef v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
-	APIKeySecretRef v1.SecretKeySelector `json:"apiKeySecretRef"`
+	APIKeySecretRef cmmeta.SecretKeySelector `json:"apiKeySecretRef"`
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -133,6 +137,18 @@ func (c *regruDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopC
 	}
 
 	c.client = *cl //??????????
+	log.Infof("Initialize client: %v", c.client)
+	secret, err := c.client.CoreV1().Secrets("go").Get(context.TODO(), "db-user-pass", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	log.Infof("The secret is: %v", secret)
+
+	bytes, ok := secret.Data["password"]
+	if !ok {
+		return fmt.Errorf("key not found %q in secret '%s/%s'", "password", "go", "db-user-pass")
+	}
+	log.Infof("Secret value is: %v", string(bytes))
 
 	///// END OF CODE TO MAKE KUBERNETES CLIENTSET AVAILABLE
 	return nil
