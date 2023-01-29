@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
+
 	regruapi "github.com/daloman/regru-api-go/zonecontrol"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"os"
-	"strings"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
@@ -103,7 +104,7 @@ func (c *regruDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	domain := ch.ResolvedFQDN
 	zone := strings.TrimRight(ch.ResolvedZone, ".")
 	content := ch.Key
-	log.Infof("Add %v TXT resource record for %v domain with following content %v\n", domain, zone, content)
+	log.Infof("Add %v TXT resource record for %v domain with the following content %v", domain, zone, content)
 	regruapi.AddTxtRr(apiCredentials["login"], apiCredentials["password"], zone, domain, content)
 	return nil
 }
@@ -122,7 +123,7 @@ func (c *regruDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	domain := ch.ResolvedFQDN
 	zone := strings.TrimRight(ch.ResolvedZone, ".")
 	content := ch.Key
-	log.Infof("Delete %v TXT resource record for %v domain with following content %v\n", domain, zone, content)
+	log.Infof("Delete %v TXT resource record for %v domain with following content %v", domain, zone, content)
 	regruapi.RmTxtRr(apiCredentials["login"], apiCredentials["password"], zone, domain, "TXT", content)
 	return nil
 }
