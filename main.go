@@ -4,14 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"strings"
-
+	regruapi "github.com/daloman/regru-api-go/zonecontrol"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-
-	regruapi "github.com/daloman/regru-api-go/zonecontrol"
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"os"
+	"strings"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
@@ -23,6 +21,10 @@ import (
 )
 
 var GroupName = os.Getenv("GROUP_NAME")
+
+func init() {
+	log.SetFormatter(&log.JSONFormatter{})
+}
 
 func main() {
 	if GroupName == "" {
@@ -53,7 +55,7 @@ type regruDNSProviderSolver struct {
 	client kubernetes.Clientset
 }
 
-// customDNSProviderConfig is a structure that is used to decode into when
+// regruDNSProviderConfig is a structure that is used to decode into when
 // solving a DNS01 challenge.
 // This information is provided by cert-manager, and may be a reference to
 // additional configuration that's needed to solve the challenge for this
@@ -67,7 +69,7 @@ type regruDNSProviderSolver struct {
 // You should not include sensitive information here. If credentials need to
 // be used by your provider here, you should reference a Kubernetes Secret
 // resource and fetch these credentials using a Kubernetes clientset.
-type customDNSProviderConfig struct {
+type regruDNSProviderConfig struct {
 	// Change the two fields below according to the format of the configuration
 	// to be decoded.
 	// These fields will be set by users in the
@@ -94,25 +96,15 @@ func (c *regruDNSProviderSolver) Name() string {
 // cert-manager itself will later perform a self check to ensure that the
 // solver has correctly configured the DNS provider.
 func (c *regruDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
-	cfg, err := loadConfig(ch.Config)
+	apiCredentials, err := c.getDNSApiCredentials(ch)
 	if err != nil {
 		return err
 	}
-
-	// TODO: do something more useful with the decoded configuration
-	log.Infof("Decoded configuration %v\n", cfg)
-	log.Infof("Decoded configuration %v\n", cfg.APILoginRef)
-
-	login, err := c.loadSecretData(cfg.APILoginRef, ch.ResourceNamespace)
-	if err != nil {
-		return err
-	}
-	secret, err := c.loadSecretData(cfg.APIPasswordRef, ch.ResourceNamespace)
-	if err != nil {
-		return err
-	}
-	// TODO: add code that sets a record in the DNS provider's console
-	regruapi.AddTxtRr(login, secret, strings.TrimRight(ch.ResolvedZone, "."), ch.ResolvedFQDN, ch.Key)
+	domain := ch.ResolvedFQDN
+	zone := strings.TrimRight(ch.ResolvedZone, ".")
+	content := ch.Key
+	log.Infof("Add %v TXT resource record for %v domain with following content %v\n", domain, zone, content)
+	regruapi.AddTxtRr(apiCredentials["login"], apiCredentials["password"], zone, domain, content)
 	return nil
 }
 
@@ -123,24 +115,15 @@ func (c *regruDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
 func (c *regruDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	// TODO: add code that deletes a record from the DNS provider's console
-	cfg, err := loadConfig(ch.Config)
+	apiCredentials, err := c.getDNSApiCredentials(ch)
 	if err != nil {
 		return err
 	}
-	// TODO: do something more useful with the decoded configuration
-	log.Infof("Decoded configuration %v\n", cfg)
-	log.Infof("Decoded configuration %v\n", cfg.APILoginRef)
-
-	login, err := c.loadSecretData(cfg.APILoginRef, ch.ResourceNamespace)
-	if err != nil {
-		return err
-	}
-	secret, err := c.loadSecretData(cfg.APIPasswordRef, ch.ResourceNamespace)
-	if err != nil {
-		return err
-	}
-	regruapi.RmTxtRr(login, secret, strings.TrimRight(ch.ResolvedZone, "."), ch.ResolvedFQDN, "TXT")
+	domain := ch.ResolvedFQDN
+	zone := strings.TrimRight(ch.ResolvedZone, ".")
+	content := ch.Key
+	log.Infof("Delete %v TXT resource record for %v domain with following content %v\n", domain, zone, content)
+	regruapi.RmTxtRr(apiCredentials["login"], apiCredentials["password"], zone, domain, "TXT", content)
 	return nil
 }
 
@@ -156,7 +139,6 @@ func (c *regruDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 func (c *regruDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	///// UNCOMMENT THE BELOW CODE TO MAKE A KUBERNETES CLIENTSET AVAILABLE TO
 	///// YOUR CUSTOM DNS PROVIDER
-
 	cl, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
 		return err
@@ -169,8 +151,8 @@ func (c *regruDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopC
 
 // loadConfig is a small helper function that decodes JSON configuration into
 // the typed config struct.
-func loadConfig(cfgJSON *extapi.JSON) (customDNSProviderConfig, error) {
-	cfg := customDNSProviderConfig{}
+func loadConfig(cfgJSON *extapi.JSON) (regruDNSProviderConfig, error) {
+	cfg := regruDNSProviderConfig{}
 	// handle the 'base case' where no configuration has been provided
 	if cfgJSON == nil {
 		return cfg, nil
@@ -180,6 +162,25 @@ func loadConfig(cfgJSON *extapi.JSON) (customDNSProviderConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+func (c *regruDNSProviderSolver) getDNSApiCredentials(ch *v1alpha1.ChallengeRequest) (map[string]string, error) {
+	credentials := make(map[string]string)
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return credentials, err
+	}
+	login, err := c.loadSecretData(cfg.APILoginRef, ch.ResourceNamespace)
+	if err != nil {
+		return credentials, err
+	}
+	credentials["login"] = login
+	password, err := c.loadSecretData(cfg.APIPasswordRef, ch.ResourceNamespace)
+	if err != nil {
+		return credentials, err
+	}
+	credentials["password"] = password
+	return credentials, nil
 }
 
 func (c *regruDNSProviderSolver) loadSecretData(ref cmmeta.SecretKeySelector, ns string) (string, error) {
