@@ -1,30 +1,66 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/cert-manager/cert-manager/d53c0b9270f8cd90d908460d69502694e1838f5f/logo/logo-small.png" height="256" width="256" alt="cert-manager project logo" />
-</p>
+# REG.RU provider DNS01 challenge solver
 
-# ACME webhook example
 
-The ACME issuer type supports an optional 'webhook' solver, which can be used
-to implement custom DNS01 challenge solving logic.
+## REG.RU API documentation
 
-This is useful if you need to use cert-manager with a DNS provider that is not
-officially supported in cert-manager core.
+API documentation https://www.reg.ru/reseller/api2doc#common
 
-## Why not in core?
+## REG.RU DNS provider allow access to API from known IP-addresses only
 
-As the project & adoption has grown, there has been an influx of DNS provider
-pull requests to our core codebase. As this number has grown, the test matrix
-has become un-maintainable and so, it's not possible for us to certify that
-providers work to a sufficient level.
+Access configuration https://www.reg.ru/user/account/#/settings/api/
+```json
+{
+   "charset" : "utf-8",
+   "error_code" : "ACCESS_DENIED_FROM_IP",
+   "error_params" : {
+      "command_name" : "zone/get_resource_records"
+   },
+   "error_text" : "Access to API from this IP denied",
+   "messagestore" : null,
+   "result" : "error"
+}
+```
+## Usage
+### Installation
 
-By creating this 'interface' between cert-manager and DNS providers, we allow
-users to quickly iterate and test out new integrations, and then packaging
-those up themselves as 'extensions' to cert-manager.
+```
+TODO
+```
 
-We can also then provide a standardised 'testing framework', or set of
-conformance tests, which allow us to validate the a DNS provider works as
-expected.
+Create kubernetes secret with credentials:
+```
+kubectl --namespace cert-manager create secret generic regru-api-creds --from-literal=login='<your-username>' --from-literal=password='<your-password>'
+```
+One can use any suitable way https://kubernetes.io/docs/tasks/configmap-secret/
 
+
+## Creating clusterIssuer resource
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: regru-dns
+spec:
+  acme:
+    email: username@example.com
+    privateKeySecretRef:
+      name: letsencrypt-private-key
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    solvers:
+    - dns01:
+        webhook:
+          config:
+            apiLoginRef:
+              key: login
+              name: regru-api-creds
+            apiPasswordRef:
+              key: password
+              name: regru-api-creds
+          groupName: acme.regru.ru
+          solverName: regru
+
+```
 ## Creating your own webhook
 
 Webhook's themselves are deployed as Kubernetes API services, in order to allow
