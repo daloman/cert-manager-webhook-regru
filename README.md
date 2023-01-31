@@ -5,9 +5,12 @@
 
 API documentation https://www.reg.ru/reseller/api2doc#common
 
-## REG.RU DNS provider allow access to API from known IP-addresses only
+# REG.RU DNS provider allow access to API from known IP-addresses only
 
 Access configuration https://www.reg.ru/user/account/#/settings/api/
+
+Configure API access from your IP-address or you can see something like this message:
+
 ```json
 {
    "charset" : "utf-8",
@@ -20,19 +23,24 @@ Access configuration https://www.reg.ru/user/account/#/settings/api/
    "result" : "error"
 }
 ```
-## Usage
-### Installation
 
-```
-TODO
-```
-
+## Creating secret with REG.RU API credentials
 Create kubernetes secret with credentials:
+
 ```
 kubectl --namespace cert-manager create secret generic regru-api-creds --from-literal=login='<your-username>' --from-literal=password='<your-password>'
 ```
+
 One can use any suitable way https://kubernetes.io/docs/tasks/configmap-secret/
 
+## Creating your own webhook
+Deploy webhook from this repository using `helm` utility:
+
+```
+git clone https://github.com/daloman/cert-manager-webhook-regru.git
+
+helm --namespace cert-manager upgrade --install regru-webhook ./cert-manager-webhook-regru/deploy/helm/regru-webhook/ --set groupName="acme.regru.ru"
+```
 
 ## Creating clusterIssuer resource
 
@@ -61,18 +69,6 @@ spec:
           solverName: regru
 
 ```
-## Creating your own webhook
-
-Webhook's themselves are deployed as Kubernetes API services, in order to allow
-administrators to restrict access to webhooks with Kubernetes RBAC.
-
-This is important, as otherwise it'd be possible for anyone with access to your
-webhook to complete ACME challenge validations and obtain certificates.
-
-To make the set up of these webhook's easier, we provide a template repository
-that can be used to get started quickly.
-
-### Creating your own repository
 
 ### Running the test suite
 
