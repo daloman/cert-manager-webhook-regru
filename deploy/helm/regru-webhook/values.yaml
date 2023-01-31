@@ -14,7 +14,7 @@ certManager:
 
 image:
   repository: daloman/cert-manager-webhook-regru
-  tag: "0.3.0"
+  tag: "0.3.1-beta"
   pullPolicy: IfNotPresent
 
 nameOverride: ""

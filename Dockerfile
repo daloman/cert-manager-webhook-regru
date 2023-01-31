@@ -5,8 +5,9 @@ RUN apk add --no-cache git
 WORKDIR /workspace
 
 COPY go.mod .
+
 COPY go.sum .
-COPY .netrc /root/.netrc
+
 RUN go mod download
 
 FROM build_deps AS build

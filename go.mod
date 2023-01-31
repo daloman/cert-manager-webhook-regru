@@ -8,7 +8,7 @@ replace github.com/cert-manager/cert-manager => github.com/cert-manager/cert-man
 
 require (
 	github.com/cert-manager/cert-manager v1.11.0
-	github.com/daloman/regru-api-go v0.0.0-20230129223802-6ccb18ebd542
+	github.com/daloman/regru-api-go v0.1.0-alpha
 	github.com/miekg/dns v1.1.50
 	github.com/stretchr/testify v1.8.1
 	k8s.io/apiextensions-apiserver v0.26.0
